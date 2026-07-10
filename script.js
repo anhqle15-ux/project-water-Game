@@ -14,6 +14,8 @@ let board = [];
 let score = 0;
 let moves = 20;
 let gameOver = false;
+const totalRocks = 5;
+let confettiContainer = null;
 
 function createBoard() {
   // Start every tile as dirt.
@@ -22,10 +24,31 @@ function createBoard() {
   // Place the water droplet in the top center square.
   // In a 0-based array, the middle column is index 2.
   board[0][2] = "water";
+
+  // Add random rocks that block the flow of water.
+  placeRocks();
+}
+
+function placeRocks() {
+  let rocksPlaced = 0;
+
+  while (rocksPlaced < totalRocks) {
+    const row = Math.floor(Math.random() * boardSize);
+    const col = Math.floor(Math.random() * boardSize);
+
+    // Only place rocks on dirt cells so the start tile stays clear.
+    if (board[row][col] === "dirt") {
+      board[row][col] = "rock";
+      rocksPlaced += 1;
+    }
+  }
 }
 
 // Reset the game to its starting state.
 function resetGame() {
+  // Clear any old confetti before a new round begins.
+  clearConfetti();
+
   // Clear the score and move counters.
   score = 0;
   moves = 20;
@@ -99,6 +122,46 @@ function applyGravity() {
   }
 }
 
+// Create a container for the confetti pieces.
+function createConfettiContainer() {
+  if (confettiContainer) {
+    return;
+  }
+
+  confettiContainer = document.createElement("div");
+  confettiContainer.className = "confetti-container";
+  document.body.appendChild(confettiContainer);
+}
+
+// Launch a simple confetti effect when the player wins.
+function launchConfetti() {
+  createConfettiContainer();
+
+  const colors = ["#FFC907", "#77A8BB", "#ffffff", "#ff6b6b", "#4ecdc4"];
+
+  for (let i = 0; i < 40; i += 1) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = `${Math.random() * 0.2}s`;
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    confettiContainer.appendChild(piece);
+
+    window.setTimeout(() => {
+      piece.remove();
+    }, 2400);
+  }
+}
+
+function clearConfetti() {
+  if (!confettiContainer) {
+    return;
+  }
+
+  confettiContainer.innerHTML = "";
+}
+
 // Render the board into the HTML container.
 // This turns the array into visible div elements.
 function renderBoard() {
@@ -122,6 +185,10 @@ function renderBoard() {
         cell.classList.add("water");
         cell.setAttribute("aria-label", "Water droplet");
         cell.textContent = "💧";
+      } else if (cellType === "rock") {
+        cell.classList.add("rock");
+        cell.setAttribute("aria-label", "Rock");
+        cell.textContent = "🪨";
       }
 
       // Add simple visual styles directly in JavaScript.
@@ -135,6 +202,16 @@ function renderBoard() {
         cell.style.display = "flex";
         cell.style.alignItems = "center";
         cell.style.justifyContent = "center";
+      } else if (cellType === "rock") {
+        cell.style.background = "linear-gradient(145deg, #7d7d7d, #525252)";
+        cell.style.border = "2px solid #585858";
+        cell.style.fontSize = "1.2rem";
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+        cell.style.justifyContent = "center";
+      } else if (cellType === "empty") {
+        cell.style.background = "linear-gradient(145deg, #f7e9c2, #e7cf9a)";
+        cell.style.border = "2px solid #e2d4a9";
       }
 
       boardElement.appendChild(cell);
@@ -187,6 +264,7 @@ function handleCellClick(event) {
     if (hasReachedReservoir()) {
       gameOver = true;
       updateMessage("🎉 Clean Water Delivered!");
+      launchConfetti();
       return;
     }
 
