@@ -98,45 +98,76 @@ function findWaterPosition() {
   return null;
 }
 
-// Move the water droplet downward, and let it flow left or right
-// when the path below is blocked by a rock or another obstacle.
-function applyGravity() {
-  let moved = true;
+// Move the water droplet downward, and let it find an open route
+// left or right when the path below is blocked by a rock or another obstacle.
+function findNextWaterMove(startRow, startCol) {
+  const queue = [{ row: startRow, col: startCol, path: [] }];
+  const visited = new Set([`${startRow},${startCol}`]);
 
-  while (moved) {
-    moved = false;
-    const waterPosition = findWaterPosition();
+  while (queue.length > 0) {
+    const { row, col, path } = queue.shift();
 
-    if (!waterPosition) {
-      return;
-    }
-
-    const { row, col } = waterPosition;
-
-    // First try to continue down.
+    // If this spot can continue downward, the first step in the path is the move to make.
     if (row + 1 < boardSize && board[row + 1][col] === "empty") {
-      board[row][col] = "empty";
-      board[row + 1][col] = "water";
-      renderBoard();
-      moved = true;
-      continue;
+      if (path.length === 0) {
+        return { row: row + 1, col };
+      }
+
+      return path[0];
     }
 
-    // If a path below is blocked, try moving left.
+    const nextMoves = [];
+
+    // Try moving left first, then right.
     if (col > 0 && board[row][col - 1] === "empty") {
-      board[row][col] = "empty";
-      board[row][col - 1] = "water";
-      renderBoard();
-      moved = true;
-      continue;
+      nextMoves.push({ row, col: col - 1 });
     }
 
-    // If left is blocked, try moving right.
     if (col + 1 < boardSize && board[row][col + 1] === "empty") {
-      board[row][col] = "empty";
-      board[row][col + 1] = "water";
-      renderBoard();
-      moved = true;
+      nextMoves.push({ row, col: col + 1 });
+    }
+
+    nextMoves.forEach((nextMove) => {
+      const key = `${nextMove.row},${nextMove.col}`;
+
+      if (!visited.has(key)) {
+        visited.add(key);
+        queue.push({
+          row: nextMove.row,
+          col: nextMove.col,
+          path: [...path, nextMove],
+        });
+      }
+    });
+  }
+
+  return null;
+}
+
+function applyGravity() {
+  const waterPosition = findWaterPosition();
+
+  if (!waterPosition) {
+    return;
+  }
+
+  let { row, col } = waterPosition;
+
+  while (true) {
+    const nextMove = findNextWaterMove(row, col);
+
+    if (!nextMove) {
+      break;
+    }
+
+    board[row][col] = "empty";
+    row = nextMove.row;
+    col = nextMove.col;
+    board[row][col] = "water";
+    renderBoard();
+
+    if (row === boardSize - 1) {
+      break;
     }
   }
 }
