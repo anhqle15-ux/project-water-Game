@@ -98,27 +98,46 @@ function findWaterPosition() {
   return null;
 }
 
-// Move the water droplet straight downward while the space below is empty.
+// Move the water droplet downward, and let it flow left or right
+// when the path below is blocked by a rock or another obstacle.
 function applyGravity() {
-  const waterPosition = findWaterPosition();
+  let moved = true;
 
-  if (!waterPosition) {
-    return;
-  }
+  while (moved) {
+    moved = false;
+    const waterPosition = findWaterPosition();
 
-  let { row, col } = waterPosition;
+    if (!waterPosition) {
+      return;
+    }
 
-  // Keep moving while there is empty space directly beneath the water.
-  while (row + 1 < boardSize && board[row + 1][col] === "empty") {
-    // Leave the old water spot empty.
-    board[row][col] = "empty";
+    const { row, col } = waterPosition;
 
-    // Move the water one row down.
-    row += 1;
-    board[row][col] = "water";
+    // First try to continue down.
+    if (row + 1 < boardSize && board[row + 1][col] === "empty") {
+      board[row][col] = "empty";
+      board[row + 1][col] = "water";
+      renderBoard();
+      moved = true;
+      continue;
+    }
 
-    // Re-render the board after each movement so the board stays in sync.
-    renderBoard();
+    // If a path below is blocked, try moving left.
+    if (col > 0 && board[row][col - 1] === "empty") {
+      board[row][col] = "empty";
+      board[row][col - 1] = "water";
+      renderBoard();
+      moved = true;
+      continue;
+    }
+
+    // If left is blocked, try moving right.
+    if (col + 1 < boardSize && board[row][col + 1] === "empty") {
+      board[row][col] = "empty";
+      board[row][col + 1] = "water";
+      renderBoard();
+      moved = true;
+    }
   }
 }
 
